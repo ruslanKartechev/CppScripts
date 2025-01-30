@@ -2,10 +2,11 @@
 
 module;
 #ifdef WIN_PLATFORM
-#include <windows.h>
+	#include <windows.h>
 #endif
-export module Searcher;
+export module LF_searcher;
 import Logger;
+import dir_utils;
 import <iostream>;
 import <string>;
 import <memory>;
@@ -15,14 +16,9 @@ import <fstream>;
 
 namespace SleepDev
 {
-#ifdef WIN_PLATFORM
-	const int CodeDirectory_Win = 16; // for windows
-	const int CodeFile_Win = 32; // for windows
-#endif
 	const int MaxConsoleLogLines = 128;
 
-	export void BeginUserPromptLoop();
-	export bool CheckFileExists(const std::wstring& path);
+	export void BeginLFSearch();
 
 	int _callsCount = 0;
 	std::wstring _outputFilePathUser;
@@ -86,7 +82,7 @@ namespace SleepDev
 		}
 	};
 
-	export void BeginUserPromptLoop()
+	export void BeginLFSearch()
 	{
 		TakeUserDirectory();
 		TakeUserMaxSize();
@@ -140,6 +136,7 @@ namespace SleepDev
 	void TakeUserMaxSize()
 	{
 		using namespace std;
+
 		bool proceed = false;
 		char yesNoInput;
 		int numInput;
@@ -224,16 +221,6 @@ namespace SleepDev
 		while (!proceed);
 	}
 
-	bool CheckFileExists(const std::wstring& path)
-	{
-		auto str = std::string(path.begin(), path.end());
-		DWORD ftyp = GetFileAttributesA(str.c_str());
-		if (ftyp == INVALID_FILE_ATTRIBUTES)
-			return false;  //something is wrong with your path!
-		if (ftyp & FILE_ATTRIBUTE_DIRECTORY)
-			return true;   // this is a directory!
-		return false;    // this is not a directory!
-	}
 
 #ifdef WIN_PLATFORM
 	void RunRecursiveSearch_Windows(std::wstring&& parentDir, std::wstring&& localDir, std::vector<FileData>* filesData)
@@ -253,14 +240,13 @@ namespace SleepDev
 			//LogLine("Error! Invalid File Handle!");
 			return;
 		}
-		uint32_t stepsCount = 0;
+		// the first 2 are . and .. (IGNORE THEM)
+		FindNextFile(hFind, &dataFind) != 0;
+		FindNextFile(hFind, &dataFind) != 0;
 		do
 		{
-			stepsCount++;
-			if (stepsCount <= 2) // the first 2 are . and .. (IGNORE THEM)
-				continue;
-			std::wstring addedName = std::wstring(LR"(\)") + dataFind.cFileName;
-			uint32_t fSize = (dataFind.nFileSizeHigh * (MAXDWORD + 1)) + dataFind.nFileSizeLow;
+			auto addedName = std::wstring(LR"(\)") + dataFind.cFileName;
+			auto fSize = (dataFind.nFileSizeHigh * (MAXDWORD + 1)) + dataFind.nFileSizeLow;
 			if ((dataFind.dwFileAttributes == CodeFile_Win) && fSize >= _maxSizeBytes)
 			{
 				filesData->push_back(FileData((localDir + addedName), dataFind.cFileName, fSize));
@@ -280,6 +266,7 @@ namespace SleepDev
 	}
 #endif
 
+
 	void RunRecursiveSearch(std::wstring& globalDir, std::vector<FileData>* filesData)
 	{
 		_callsCount = 0;
@@ -287,7 +274,6 @@ namespace SleepDev
 		RunRecursiveSearch_Windows((std::wstring&&)globalDir, std::wstring(), filesData);
 #endif
 	}
-
 
 	void LogFoundFilesToConsole(std::vector<FileData>* filesData)
 	{
@@ -314,7 +300,8 @@ namespace SleepDev
 		outputFile.open(_outputFilePathUser);
 		if (!outputFile.is_open())
 		{
-			LogLine("Failed to open or create the output file");
+			LogError("Failed to open or create the output file");
+			return;
 		}
 		for (auto it = strings->begin(); it != strings->end(); it++)
 		{

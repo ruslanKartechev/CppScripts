@@ -15,13 +15,19 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="LargeFilesSearcher.cpp">
+    <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Logger.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Searcher.ixx">
+    <ClCompile Include="LF_searcher.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="push_helper.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="dir_utils.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
